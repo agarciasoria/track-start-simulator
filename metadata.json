@@ -1,0 +1,5 @@
+{
+  "name": "Track Start Simulator",
+  "description": "Mimics a track competition start and measures reaction time using the device accelerometer.",
+  "requestFramePermissions": ["accelerometer", "gyroscope"]
+}
