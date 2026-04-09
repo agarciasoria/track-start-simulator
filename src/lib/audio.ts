@@ -1,3 +1,23 @@
+// Create a single shared context outside the functions
+let sharedCtx: AudioContext | null = null;
+
+export const initAudio = () => {
+  if (sharedCtx) return;
+  
+  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  if (!AudioContextClass) return;
+  
+  sharedCtx = new AudioContextClass();
+  
+  // iOS needs us to play a completely silent sound on the very first tap to "unlock" the audio engine
+  const buffer = sharedCtx.createBuffer(1, 1, 22050);
+  const source = sharedCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(sharedCtx.destination);
+  source.start(0);
+  sharedCtx.resume();
+};
+
 export const speak = (text: string) => {
   return new Promise<void>((resolve) => {
     if (!("speechSynthesis" in window)) {
@@ -13,12 +33,12 @@ export const speak = (text: string) => {
 };
 
 export const playGunSound = () => {
-  const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-  if (!AudioContext) return;
+  if (!sharedCtx) return;
+  const ctx = sharedCtx;
   
-  const ctx = new AudioContext();
+  // Make sure it's awake
+  if (ctx.state === 'suspended') ctx.resume();
   
-  // Create an oscillator for the low frequency "thump"
   const osc = ctx.createOscillator();
   const oscGain = ctx.createGain();
   
@@ -32,8 +52,7 @@ export const playGunSound = () => {
   osc.connect(oscGain);
   oscGain.connect(ctx.destination);
   
-  // Create noise for the "crack"
-  const bufferSize = ctx.sampleRate * 0.5; // 0.5 seconds of noise
+  const bufferSize = ctx.sampleRate * 0.5;
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < bufferSize; i++) {
@@ -63,13 +82,12 @@ export const playGunSound = () => {
 };
 
 export const playDoubleGunSound = () => {
-  const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-  if (!AudioContext) return;
+  if (!sharedCtx) return;
+  const ctx = sharedCtx;
   
-  const ctx = new AudioContext();
+  if (ctx.state === 'suspended') ctx.resume();
 
   const fireGun = (startTime: number) => {
-    // Create an oscillator for the low frequency "thump"
     const osc = ctx.createOscillator();
     const oscGain = ctx.createGain();
     
@@ -83,8 +101,7 @@ export const playDoubleGunSound = () => {
     osc.connect(oscGain);
     oscGain.connect(ctx.destination);
     
-    // Create noise for the "crack"
-    const bufferSize = ctx.sampleRate * 0.5; // 0.5 seconds of noise
+    const bufferSize = ctx.sampleRate * 0.5;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
@@ -114,5 +131,5 @@ export const playDoubleGunSound = () => {
   };
 
   fireGun(ctx.currentTime);
-  fireGun(ctx.currentTime + 0.4); // Second shot 400ms later
+  fireGun(ctx.currentTime + 0.4);
 };
