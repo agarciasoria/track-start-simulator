@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Settings, Play, RotateCcw, AlertTriangle, Activity, Smartphone, History } from 'lucide-react';
-import { speak, playGunSound, playDoubleGunSound, initAudio } from './lib/audio';
+import { speak, playGunSound, playDoubleGunSound, initAudio, initSpeech } from './lib/audio';
 import { useAccelerometer } from './hooks/useAccelerometer';
 import { cn } from './lib/utils';
 
@@ -54,15 +54,11 @@ export default function App() {
       }
     }
 
-    // Initialize our shared audio context safely on the user's tap
+    // Initialize audio context (requires user gesture)
     initAudio();
 
     // Initialize speech synthesis
-    if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance("");
-      utterance.volume = 0;
-      window.speechSynthesis.speak(utterance);
-    }
+    initSpeech();
 
     resetRace();
     setRaceState('WAITING_FOR_MARKS');
